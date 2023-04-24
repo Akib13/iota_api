@@ -3,7 +3,7 @@ Backend instructions
 
 Structure
 ---------
-The backend is built using Node.js and the IOTA client.
+The backend is built using Node.js and the Node.js binding from IOTA client.
 
 Usage
 ------
