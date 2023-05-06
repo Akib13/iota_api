@@ -47,6 +47,7 @@ router.post('/message', async function(req, res, next) {
     
     // JSON to String, required for Buffer
     //TODO: get data from request
+    //TODO: How to include a signature?
     var jsonStr = JSON.stringify({"id": 1, "value": "test payload"});
     
     // JSON string to Buffer, required for message payload data
