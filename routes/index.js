@@ -24,15 +24,13 @@ router.get('/data', async function(req, res, next) {
 });
 
 router.get('/addresses', async function(req, res, next) {
-//async function getAddresses() {
-    const { ClientBuilder } = require('@iota/client');
   
     // Get the seed from environment variable
     //const IOTA_SEED_SECRET = process.env.IOTA_SEED_SECRET;
     const IOTA_SEED_SECRET = generateSeed();
   
     // client will connect to testnet by default
-    const client = new ClientBuilder().build();
+    const client = new ClientBuilder().localPow(true).build();
   
     const addresses = await client.getAddresses(IOTA_SEED_SECRET)
       .accountIndex(0)
@@ -43,12 +41,11 @@ router.get('/addresses', async function(req, res, next) {
   });
 
 router.post('/message', async function(req, res, next) {
-    const client = new ClientBuilder().build();
+    const client = new ClientBuilder().localPow(true).build();
     
     // JSON to String, required for Buffer
-    //TODO: get data from request
-    //TODO: How to include a signature?
-    var jsonStr = JSON.stringify({"id": 1, "value": "test payload"});
+    //TODO: get data from request, check validity
+    var jsonStr = JSON.stringify({"id": 1, "value": "test payload", "jwt": "jwthere"});
     
     // JSON string to Buffer, required for message payload data
     const buf = Buffer.from(jsonStr);
@@ -60,7 +57,7 @@ router.post('/message', async function(req, res, next) {
 
 router.get('/message', async function(req, res, next) {
     // client will connect to testnet by default
-    const client = new ClientBuilder().build();
+    const client = new ClientBuilder().localPow(true).build();
 
     // get message data by message id (get a random message id with getTips)
     const tips = await client.getTips();
@@ -87,7 +84,7 @@ function generateSeed() {
     const seed = crypto.createHash('sha256').update(crypto.randomBytes(256)).digest('hex');
     console.log(seed);
 
-    const client = new ClientBuilder().build();
+    const client = new ClientBuilder().localPow(true).build();
 
     const mnemonic = client.generateMnemonic();
     console.log(mnemonic);
@@ -99,7 +96,7 @@ function generateSeed() {
 
 async function addressOutputs(addresses) {
     // client will connect to testnet by default
-    const client = new ClientBuilder().build();
+    const client = new ClientBuilder().localPow(true).build();
 
     console.log(addresses[1]);
     const outputs = await client.getAddressOutputs(addresses[1]);
