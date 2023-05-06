@@ -53,7 +53,7 @@ router.post('/message', async function(req, res, next) {
     const buf = Buffer.from(jsonStr);
 
     //index can later be used to retrieve all messages with the same index
-    const messageId = await client.postMessage({payload: {type: 2, index: "test_aau", data: buf}});
+    const messageId = await client.postMessage({payload: { index: "test_aau", data: buf}});
     res.send(messageId);
 });
 
@@ -74,8 +74,9 @@ router.get('/message', async function(req, res, next) {
         const message_wrapper = await client.getMessage().data(message_id)
         console.log(Buffer.from(message_wrapper.message.payload.data, 'hex').toString('utf8'));
     }
-    console.log("fetching");
-    console.log(req.body.messageid);
+
+    //get message based on messageid from request body
+    console.log("Message you looked for:");
     const sm = await client.getMessage().data(req.body.messageid.toString());
     console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
     res.send("ok");
