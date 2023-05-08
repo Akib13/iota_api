@@ -4,8 +4,66 @@ const { ClientBuilder } = require('@iota/client');
 require('dotenv').config({ path: '../.env' });
 const crypto = require('crypto');
 
+//record new message
+router.post('/message', async function(req, res, next) {
 
-//test
+    let dataIsValid = false;
+    dataIsValid = checkSenderValidity(req.body);
+
+    /*if(!dataIsValid){
+        res.send("Data sender couldn't be verified");
+    }*/
+
+    const client = new ClientBuilder().localPow(true).build();
+    
+    // JSON to String, required for Buffer
+    //TODO: get data from request, check validity
+    var jsonStr = JSON.stringify({"id": 1, "value": "test payload", "jwt": "jwthere"});
+    
+    // JSON string to Buffer, required for message payload data
+    const buf = Buffer.from(jsonStr);
+
+    //index can later be used to retrieve all messages with the same index
+    const messageId = await client.postMessage({payload: { index: "test_aau", data: buf}});
+    res.send(messageId);
+});
+
+router.get('/message', async function(req, res, next) {
+    // client will connect to testnet by default
+    const client = new ClientBuilder().localPow(true).build();
+
+    // get message data by message id (get a random message id with getTips)
+    /*const tips = await client.getTips();
+    const message_data = await client.getMessage().data(tips[0]);
+    const message_metadata = await client.getMessage().metadata(tips[0]);
+    console.log(message_metadata);
+    console.log(message_data);*/
+
+    // get messages (indexation data) by index
+    const message_ids = await client.getMessage().index("test_aau")
+    for (message_id of message_ids) {
+        const message_wrapper = await client.getMessage().data(message_id)
+        console.log(Buffer.from(message_wrapper.message.payload.data, 'hex').toString('utf8'));
+    }
+
+    //get message based on messageid from request body
+    console.log("Message you looked for:");
+    const sm = await client.getMessage().data(req.body.messageid.toString());
+    console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
+    res.send("ok");
+});
+
+//check signature, include sender id/type/etc. in body as well to confirm check?
+function checkSenderValidity(body){
+    let valid = false;
+    if(body.length !== 0){
+        console.log(body);
+    }
+    return valid;
+}
+
+
+//test stuff
 router.get('/data', async function(req, res, next) {
 
     // client will connect to testnet by default
@@ -39,46 +97,6 @@ router.get('/addresses', async function(req, res, next) {
   
     res.send(await addressOutputs(addresses));
   });
-
-router.post('/message', async function(req, res, next) {
-    const client = new ClientBuilder().localPow(true).build();
-    
-    // JSON to String, required for Buffer
-    //TODO: get data from request, check validity
-    var jsonStr = JSON.stringify({"id": 1, "value": "test payload", "jwt": "jwthere"});
-    
-    // JSON string to Buffer, required for message payload data
-    const buf = Buffer.from(jsonStr);
-
-    //index can later be used to retrieve all messages with the same index
-    const messageId = await client.postMessage({payload: { index: "test_aau", data: buf}});
-    res.send(messageId);
-});
-
-router.get('/message', async function(req, res, next) {
-    // client will connect to testnet by default
-    const client = new ClientBuilder().localPow(true).build();
-
-    // get message data by message id (get a random message id with getTips)
-    const tips = await client.getTips();
-    const message_data = await client.getMessage().data(tips[0]);
-    const message_metadata = await client.getMessage().metadata(tips[0]);
-    console.log(message_metadata);
-    console.log(message_data);
-
-    // get indexation data by index
-    const message_ids = await client.getMessage().index("test_aau")
-    for (message_id of message_ids) {
-        const message_wrapper = await client.getMessage().data(message_id)
-        console.log(Buffer.from(message_wrapper.message.payload.data, 'hex').toString('utf8'));
-    }
-
-    //get message based on messageid from request body
-    console.log("Message you looked for:");
-    const sm = await client.getMessage().data(req.body.messageid.toString());
-    console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
-    res.send("ok");
-});
 
 function generateSeed() {
     const seed = crypto.createHash('sha256').update(crypto.randomBytes(256)).digest('hex');
