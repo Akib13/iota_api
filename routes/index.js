@@ -18,7 +18,7 @@ router.post('/message', async function(req, res, next) {
     
     // JSON to String, required for Buffer
     //TODO: get data from request, check validity
-    var jsonStr = JSON.stringify({"id": 1, "value": "test payload", "jwt": "jwthere"});
+    var jsonStr = JSON.stringify({"id": 1, "value": {"distance": 15, "departure": "15.10.2022 15:50", "arrival_place": "Copenhagen" }, "jwt": "jwthere"});
     
     // JSON string to Buffer, required for message payload data
     const buf = Buffer.from(jsonStr);
