@@ -3,6 +3,17 @@ var router = express.Router();
 const { ClientBuilder } = require('@iota/client');
 require('dotenv').config({ path: '../.env' });
 const crypto = require('crypto');
+const {AccountBuilder, ExplorerUrl} = require('@iota/identity-wasm/node')
+const {
+    DID,
+    Resolver,
+    ProofOptions,
+    Ed25519,
+    MethodContent,
+} = require('@iota/identity-wasm/node');
+const { Stronghold } = require('@iota/identity-stronghold-nodejs');
+const { escape } = require('querystring');
+//const base64 = require('multiformats/bases/base64');
 
 //record new message
 router.post('/message', async function(req, res, next) {
@@ -51,6 +62,54 @@ router.get('/message', async function(req, res, next) {
     const sm = await client.getMessage().data(req.body.messageid.toString());
     console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
     res.send("ok");
+});
+
+//create a new DID document
+router.post('/did', async function(req, res, next) {
+      // Stronghold settings for the Account storage.
+    // This will load an existing Stronghold or create a new one automatically.
+    const filepath = "./example-strong.hodl";
+    const password = "my-password";
+    const stronghold = await Stronghold.build(filepath, password);
+    
+    // This generates a new keypair stored securely in the above Stronghold, 
+    // constructs a new DID Document, and publishes it to the IOTA Mainnet.
+    let builder = new AccountBuilder({
+        storage: stronghold,
+    });
+    let account = await builder.createIdentity();
+
+    // Print the DID of the newly created identity.
+    const did = account.did();
+    console.log(did.toString());
+
+    const signedData = await account.createSignedData("#sign-0", {data: "moikka vaan"}, ProofOptions.default());
+
+    // Print the local state of the DID Document.
+    const document = account.document();
+    console.log(JSON.stringify(document, null, 2));
+    console.log("test:");
+    const key = document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase;
+    console.log(key);
+    const array = new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')); 
+    console.log(array);
+    //base64.parse(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, base64.decoder);
+    console.log(array.length);
+    console.log(Ed25519.PUBLIC_KEY_LENGTH());
+    Ed25519.verify({data: "moikka vaan"}, signedData, new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')));
+
+    // Print the Explorer URL for the DID.
+    console.log(`Explorer URL:`, ExplorerUrl.mainnet().resolverUrl(did));
+      res.send("ok");
+});
+
+
+router.get('/did', async function(req, res, next) {
+ const resolver = new Resolver();
+ const did = DID.parse("did:iota:6DEGud5LCr5StYHxGCYq3he9AKYwEn9EPNjcTCJ7GUDq");
+ const doc = await resolver.resolve(did);
+ console.log(JSON.stringify(doc, null, 2));
+ res.send("ok");
 });
 
 //check signature, include sender id/type/etc. in body as well to confirm check?
