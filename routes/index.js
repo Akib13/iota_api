@@ -15,6 +15,9 @@ const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
 //a new DID will be created for each message and stored in the database
+//Parameters:
+// req.body.index = index of the message to be created
+// req.body.
 router.post('/message', async function(req, res, next) {
     const client = new ClientBuilder().localPow(true).build();
     console.log(JSON.parse(req.body.data));
@@ -36,7 +39,7 @@ router.post('/message', async function(req, res, next) {
     const buf = Buffer.from(jsonStr);
 
     //index can later be used to retrieve all messages with the same index
-    const messageId = await client.postMessage({payload: { index: "test_aau_2", data: buf}});
+    const messageId = await client.postMessage({payload: { index: req.body.index, data: buf}});
     res.send(messageId);
 });
 
@@ -50,12 +53,19 @@ router.get('/message', async function(req, res, next) {
             await getMessages(continueValues[i], [], scData);
         }
     }
+    console.log(continueValues, scData);
 
+    /*const client = new ClientBuilder().localPow(true).build();
     //get message based on messageid from request body
-    /* console.log("Message you looked for:");
+    console.log("Message you looked for:");
     const desiredMessage = await client.getMessage().data(req.body.messageid.toString());
-    console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8')); */
+    //console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8'));
+    console.log(desiredMessage.message);*/
 
+    //get additional information from database
+    for(i=0; i<scData.length; i++){
+
+    }
 
    
    
@@ -100,6 +110,8 @@ async function getMessages(index, continueValues, scData){
                 continueValues.push(data["continue"]);
                 delete data["continue"];
             }
+            //add DID string to data for fetching additional information from database
+            data.did = didString;
             scData.push(data);
         }
     }
