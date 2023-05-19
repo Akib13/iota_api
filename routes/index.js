@@ -8,12 +8,9 @@ const {
     DID,
     Resolver,
     ProofOptions,
-    Ed25519,
     VerifierOptions,
 } = require('@iota/identity-wasm/node');
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
-const { escape } = require('querystring');
-//const base64 = require('multiformats/bases/base64');
 
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
@@ -109,16 +106,6 @@ router.post('/did', async function(req, res, next) {
     // Print the local state of the DID Document.
     const document = account.document();
     console.log(JSON.stringify(document, null, 2));
-    console.log("test:");
-    const key = document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase;
-    console.log(key);
-    const array = new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')); 
-    console.log(array);
-    //base64.parse(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, base64.decoder);
-    console.log(array.length);
-    console.log(Ed25519.PUBLIC_KEY_LENGTH());
-    console.log(document.verifyData({data: "moikka vaan"}, VerifierOptions.default()));
-    //Ed25519.verify({data: "moikka vaan"}, signedData, new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')));
 
     // Print the Explorer URL for the DID.
     console.log(`Explorer URL:`, ExplorerUrl.mainnet().resolverUrl(did));
