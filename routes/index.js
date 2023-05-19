@@ -36,51 +36,74 @@ router.post('/message', async function(req, res, next) {
     const buf = Buffer.from(jsonStr);
 
     //index can later be used to retrieve all messages with the same index
-    const messageId = await client.postMessage({payload: { index: "test_aau", data: buf}});
+    const messageId = await client.postMessage({payload: { index: "test_aau_2", data: buf}});
     res.send(messageId);
 });
 
 router.get('/message', async function(req, res, next) {
-    // client will connect to testnet by default
-    const client = new ClientBuilder().localPow(true).build();
-
-    // get message data by message id (get a random message id with getTips)
-    /*const tips = await client.getTips();
-    const message_data = await client.getMessage().data(tips[0]);
-    const message_metadata = await client.getMessage().metadata(tips[0]);
-    console.log(message_metadata);
-    console.log(message_data);*/
-
-    // get messages (indexation data) by index
-    /*const message_ids = await client.getMessage().index("test_aau")
-    for (message_id of message_ids) {
-        const message_wrapper = await client.getMessage().data(message_id)
-        console.log(Buffer.from(message_wrapper.message.payload.data, 'hex').toString('utf8'));
-    }*/
+    let continueValues = [];
+    let scData = [];
+    await getMessages("test_aau_2", continueValues, scData);
+    console.log(continueValues, scData);
+    if(continueValues.length !== 0){
+        for (let i=0; i<continueValues.length; i++){
+            await getMessages(continueValues[i], [], scData);
+        }
+    }
 
     //get message based on messageid from request body
-    console.log("Message you looked for:");
-    const sm = await client.getMessage().data(req.body.messageid.toString());
-    console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
+    /* console.log("Message you looked for:");
+    const desiredMessage = await client.getMessage().data(req.body.messageid.toString());
+    console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8')); */
 
-    //get DID document of the sender
-    const resolver = new Resolver();
-    //use buffer to get message data to usable form, then parse it into JSON to access pieces of information inside data
-    //get verification method (= DID + key fragment)
-    let didString = JSON.parse(Buffer.from(sm.message.payload.data, 'hex')).signedData.proof.verificationMethod.toString('utf8');
-    //remove key fragment from the string
-    didString = didString.substring(0, didString.indexOf('#'));
-    console.log(didString);
-    //parse DID string into a DID
-    const did = DID.parse(didString);
-    //get DID document
-    const doc = await resolver.resolve(did);
-    //check validity of message with the signed data and the information from the DID document
-    const validSignature = doc.document().verifyData(JSON.parse(Buffer.from(sm.message.payload.data, 'hex')).signedData, VerifierOptions.default());
-    console.log(validSignature);
+
+   
+   
     //for now, just send the result to the client
-    res.send(validSignature);
+    //res.send(validSignature);
+    res.send("ok");
 });
+
+async function getMessages(index, continueValues, scData){
+    // client will connect to testnet by default
+    const client = new ClientBuilder().localPow(true).build();
+    // get messages by index
+    const message_ids = await client.getMessage().index(index);
+
+    for (message_id of message_ids) {
+        const desiredMessage = await client.getMessage().data(message_id)
+        //console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8'))
+        //get signed data in JSON format for later use
+        const signedDataJSON = JSON.parse(Buffer.from(desiredMessage.message.payload.data, 'hex')).signedData;
+        //get DID document of the sender
+        const resolver = new Resolver();
+        //use buffer to get message data to usable form, then parse it into JSON to access pieces of information inside data
+        //get verification method (= DID + key fragment)
+        let didString = signedDataJSON.proof.verificationMethod.toString('utf8');
+        //remove key fragment from the string
+        didString = didString.substring(0, didString.indexOf('#'));
+
+        //parse DID string into a DID
+        const did = DID.parse(didString);
+        //get DID document
+        const doc = await resolver.resolve(did);
+        //check validity of message with the signed data and the information from the DID document
+        const validSignature = doc.document().verifyData(signedDataJSON, VerifierOptions.default());
+        console.log(validSignature);
+
+        //only take the message into account if the signature was valid
+        if(validSignature){
+            //if the signature was valid, check message content for an index to look for next
+            let data = JSON.parse(signedDataJSON.data);
+            if(data.continue){
+                //retrieve next messages using this value as index
+                continueValues.push(data["continue"]);
+                delete data["continue"];
+            }
+            scData.push(data);
+        }
+    }
+}
 
 //create a new DID document
 router.post('/did', async function(req, res, next) {
