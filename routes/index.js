@@ -11,7 +11,6 @@ const {
     VerifierOptions,
 } = require('@iota/identity-wasm/node');
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
-const {XMLHttpRequest} = require('xmlhttprequest');
 const axios = require('axios');
 
 //record new message
