@@ -22,14 +22,14 @@ const axios = require('axios');
 // req.body.
 router.post('/message', async function(req, res, next) {
     const client = new ClientBuilder().localPow(true).build();
-    console.log(JSON.parse(req.body.data));
+    //console.log(JSON.parse(req.body.data));
+    
     // This generates a new keypair, constructs a new DID Document, and publishes it to the IOTA Mainnet.
     let builder = new AccountBuilder();
     let account = await builder.createIdentity();
-
     //print the DID so that it can later be used for fetching the DID document (for development purposes)
     const did = account.did();
-    console.log(did.toString());
+    //console.log(did.toString());
 
     //create signature by signing the data
     const signedData = await account.createSignedData("#sign-0", {data: req.body.data}, ProofOptions.default());
@@ -87,13 +87,9 @@ router.get('/message', async function(req, res, next) {
             console.log("scData: " + JSON.stringify(scData[i]));
         }
     }
-
-
-   
-   
-    //for now, just send the result to the client
-    //res.send(validSignature);
-    res.send("ok");
+    
+    //send data back to the client
+    res.send(scData);
 });
 
 async function getMessages(index, continueValues, scData){
@@ -105,6 +101,7 @@ async function getMessages(index, continueValues, scData){
     for (message_id of message_ids) {
         const desiredMessage = await client.getMessage().data(message_id)
         //console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8'))
+        //console.log(desiredMessage);
         //get signed data in JSON format for later use
         const signedDataJSON = JSON.parse(Buffer.from(desiredMessage.message.payload.data, 'hex')).signedData;
         //get DID document of the sender
