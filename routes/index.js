@@ -9,27 +9,31 @@ const {
     Resolver,
     ProofOptions,
     Ed25519,
-    MethodContent,
+    VerifierOptions,
 } = require('@iota/identity-wasm/node');
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const { escape } = require('querystring');
 //const base64 = require('multiformats/bases/base64');
 
 //record new message
+//since we do not implement applications for the people recording transactions but need the private keys for signatures, 
+//a new DID will be created for each message and stored in the database
 router.post('/message', async function(req, res, next) {
-
-    let dataIsValid = false;
-    dataIsValid = checkSenderValidity(req.body);
-
-    /*if(!dataIsValid){
-        res.send("Data sender couldn't be verified");
-    }*/
-
     const client = new ClientBuilder().localPow(true).build();
-    
+    console.log(JSON.parse(req.body.data));
+    // This generates a new keypair, constructs a new DID Document, and publishes it to the IOTA Mainnet.
+    let builder = new AccountBuilder();
+    let account = await builder.createIdentity();
+
+    //print the DID so that it can later be used for fetching the DID document (for development purposes)
+    const did = account.did();
+    console.log(did.toString());
+
+    //create signature by signing the data
+    const signedData = await account.createSignedData("#sign-0", {data: req.body.data}, ProofOptions.default());
+    console.log(JSON.stringify(signedData));
     // JSON to String, required for Buffer
-    //TODO: get data from request, check validity
-    var jsonStr = JSON.stringify({"id": 1, "value": {"distance": 15, "departure": "15.10.2022 15:50", "arrival_place": "Copenhagen" }, "jwt": "jwthere"});
+    var jsonStr = JSON.stringify({signedData});
     
     // JSON string to Buffer, required for message payload data
     const buf = Buffer.from(jsonStr);
@@ -51,17 +55,34 @@ router.get('/message', async function(req, res, next) {
     console.log(message_data);*/
 
     // get messages (indexation data) by index
-    const message_ids = await client.getMessage().index("test_aau")
+    /*const message_ids = await client.getMessage().index("test_aau")
     for (message_id of message_ids) {
         const message_wrapper = await client.getMessage().data(message_id)
         console.log(Buffer.from(message_wrapper.message.payload.data, 'hex').toString('utf8'));
-    }
+    }*/
 
     //get message based on messageid from request body
     console.log("Message you looked for:");
     const sm = await client.getMessage().data(req.body.messageid.toString());
     console.log(Buffer.from(sm.message.payload.data, 'hex').toString('utf8'));
-    res.send("ok");
+
+    //get DID document of the sender
+    const resolver = new Resolver();
+    //use buffer to get message data to usable form, then parse it into JSON to access pieces of information inside data
+    //get verification method (= DID + key fragment)
+    let didString = JSON.parse(Buffer.from(sm.message.payload.data, 'hex')).signedData.proof.verificationMethod.toString('utf8');
+    //remove key fragment from the string
+    didString = didString.substring(0, didString.indexOf('#'));
+    console.log(didString);
+    //parse DID string into a DID
+    const did = DID.parse(didString);
+    //get DID document
+    const doc = await resolver.resolve(did);
+    //check validity of message with the signed data and the information from the DID document
+    const validSignature = doc.document().verifyData(JSON.parse(Buffer.from(sm.message.payload.data, 'hex')).signedData, VerifierOptions.default());
+    console.log(validSignature);
+    //for now, just send the result to the client
+    res.send(validSignature);
 });
 
 //create a new DID document
@@ -96,7 +117,8 @@ router.post('/did', async function(req, res, next) {
     //base64.parse(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, base64.decoder);
     console.log(array.length);
     console.log(Ed25519.PUBLIC_KEY_LENGTH());
-    Ed25519.verify({data: "moikka vaan"}, signedData, new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')));
+    console.log(document.verifyData({data: "moikka vaan"}, VerifierOptions.default()));
+    //Ed25519.verify({data: "moikka vaan"}, signedData, new Uint8Array(Buffer.from(document.toJSON().doc.capabilityInvocation[0].publicKeyMultibase, 'base64')));
 
     // Print the Explorer URL for the DID.
     console.log(`Explorer URL:`, ExplorerUrl.mainnet().resolverUrl(did));
