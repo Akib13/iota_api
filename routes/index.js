@@ -11,6 +11,8 @@ const {
     VerifierOptions,
 } = require('@iota/identity-wasm/node');
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
+const {XMLHttpRequest} = require('xmlhttprequest');
+const axios = require('axios');
 
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
@@ -62,10 +64,30 @@ router.get('/message', async function(req, res, next) {
     //console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8'));
     console.log(desiredMessage.message);*/
 
-    //get additional information from database
-    for(i=0; i<scData.length; i++){
+    //TODO: rearrange data to be in order from farm to store
+    //type / metadata: when was message posted
 
+    //get additional information from other sources
+    for(i=0; i<scData.length; i++){
+        const CVRnumber = scData[i].CVR;
+        console.log(CVRnumber);
+        console.log("scData: " + scData[i]);
+        if(CVRnumber){
+            console.log("Here");
+            const url = "https://cvrapi.dk/api?search=" + CVRnumber + "&country=dk";
+            console.log(url);
+
+            const CVRinfo = await axios.get(url).then( response => {
+                return {"name": response.data.name, "address": response.data.address, "city": response.data.city}
+            })
+            console.log("scData: " + CVRinfo);
+            scData[i].name = CVRinfo.name;
+            scData[i].address = CVRinfo.address;
+            scData[i].city = CVRinfo.city;
+            console.log("scData: " + JSON.stringify(scData[i]));
+        }
     }
+
 
    
    
