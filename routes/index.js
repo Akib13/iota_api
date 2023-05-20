@@ -1,14 +1,8 @@
 var express = require('express');
 var router = express.Router();
 const { ClientBuilder } = require('@iota/client');
-require('dotenv').config({ path: '../.env' });
-const {AccountBuilder, ExplorerUrl} = require('@iota/identity-wasm/node')
-const {
-    DID,
-    Resolver,
-    ProofOptions,
-    VerifierOptions,
-} = require('@iota/identity-wasm/node');
+require('dotenv').config({ path: '../.env' }); //store database username and password here?
+const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
 
