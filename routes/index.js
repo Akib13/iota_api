@@ -13,12 +13,16 @@ const {
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
 
+router.get('/time', function(req, res){
+    res.send(new Date());
+});
+
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
 //a new DID will be created for each message and stored in the database
 //Parameters:
 // req.body.index = index of the message to be created
-// req.body.
+// req.body.data = data to be stored in the tangle in JSON format
 router.post('/message', async function(req, res, next) {
     const client = new ClientBuilder().localPow(true).build();
     //console.log(JSON.parse(req.body.data));
@@ -27,17 +31,22 @@ router.post('/message', async function(req, res, next) {
     let builder = new AccountBuilder();
     let account = await builder.createIdentity();
     //print the DID so that it can later be used for fetching the DID document (for development purposes)
-    const did = account.did();
-    //console.log(did.toString());
+    /*const did = account.did();
+    console.log(did.toString());*/
+
+    //add time of recording to the message
+    let reqData = JSON.parse(req.body.data);
+    reqData.recordTime = new Date();
 
     //create signature by signing the data
-    const signedData = await account.createSignedData("#sign-0", {data: req.body.data}, ProofOptions.default());
+    const signedData = await account.createSignedData("#sign-0", {data: reqData}, ProofOptions.default());
     console.log(JSON.stringify(signedData));
     // JSON to String, required for Buffer
     var jsonStr = JSON.stringify({signedData});
     
-    // JSON string to Buffer, required for message payload data
+    // JSON string to int8Array, required for message payload data
     const buf = Buffer.from(jsonStr);
+    console.log(typeof(buf));
 
     //index can later be used to retrieve all messages with the same index
     const messageId = await client.postMessage({payload: { index: req.body.index, data: buf}});
