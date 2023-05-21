@@ -18,14 +18,10 @@ router.get('/time', function(req, res){
 // req.body.data = data to be stored in the tangle in JSON format
 router.post('/message', async function(req, res) {
     const client = new ClientBuilder().localPow(true).build();
-    //console.log(JSON.parse(req.body.data));
     
     // This generates a new keypair, constructs a new DID Document, and publishes it to the IOTA Mainnet.
     let builder = new AccountBuilder();
     let account = await builder.createIdentity();
-    //print the DID so that it can later be used for fetching the DID document (for development purposes)
-    /*const did = account.did();
-    console.log(did.toString());*/
 
     //add time of recording to the message
     let reqData = JSON.parse(req.body.data);
@@ -33,17 +29,18 @@ router.post('/message', async function(req, res) {
 
     //create signature by signing the data
     const signedData = await account.createSignedData("#sign-0", {data: reqData}, ProofOptions.default());
-    console.log(JSON.stringify(signedData));
     // JSON to String, required for Buffer
-    var jsonStr = JSON.stringify({signedData});
-    
+    var jsonStr = JSON.stringify({signedData});    
     // JSON string to int8Array, required for message payload data
     const buf = Buffer.from(jsonStr);
-    console.log(typeof(buf));
 
     //index can later be used to retrieve all messages with the same index
     const messageId = await client.postMessage({payload: { index: req.body.index, data: buf}});
-    res.send(messageId);
+    if(messageId.length !== 0){
+        res.send(axios.HttpStatusCode.Ok);
+    }else{
+        res.send("Error");
+    }
 });
 
 //get messages by index from the tangle, combine wiht information from virk.dk and database
