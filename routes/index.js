@@ -8,7 +8,7 @@ const axios = require('axios');
 const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates} = require('../db');
 
 //record new message
-//since we do not implement applications for the people recording transactions but need the private keys for signatures, 
+//since we do not implement applications for the people recording transactions but we do need the private keys for signatures, 
 //a new DID will be created for each message and stored in the database
 //Parameters:
 // req.body.index = index of the message to be created
@@ -40,7 +40,7 @@ router.post('/message', async function(req, res) {
     }
 });
 
-//get messages by index from the tangle, combine wiht information from virk.dk and database
+//get messages by index from the tangle, combine with information from virk.dk and database
 //Parameters:
 // req.params.index = index of the messages to be retrieved
 router.get('/messages/:index', async function(req, res) {

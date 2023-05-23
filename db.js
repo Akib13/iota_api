@@ -1,9 +1,11 @@
 var mysql = require('mysql');
+require('dotenv').config();
 
+//define parameters for connecting to the database
 var con = mysql.createConnection({
     host: "localhost",
-    user: "testuser",
-    password: "accesskey4!Database",
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     database: "mydb"
 });
 
@@ -21,7 +23,6 @@ function createStakeholderInfoTable(){
 }
 
 function addStakeholderInfo(cvr, did){
-    //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products'
     var sql = `INSERT INTO stakeholders_information (CVR_number, DID) VALUES ('${cvr}', '${did}')`;
     con.query(sql, function (err, result) {
         if (err) throw err;
@@ -31,26 +32,15 @@ function addStakeholderInfo(cvr, did){
 
 async function getStakeholderCVR(did){
     return new Promise((resolve, reject) => {
-        con.query(`SELECT CVR_Number as cvr FROM stakeholders_information WHERE DID = '${did}'`, function (err, result, fields) {
+        con.query(`SELECT CVR_Number as cvr FROM stakeholders_information WHERE DID = '${did}'`, function (err, result) {
           if (err) reject(err); 
           resolve(result);
         })
       })
-    /*con.query(`SELECT CVR_Number as cvr FROM stakeholders_information WHERE DID = '${did}'`, function (err, result, fields) {
-        if (err) throw err;
-        const resultJSON = JSON.parse(JSON.stringify(result));
-        if(resultJSON[0] && resultJSON[0].cvr){
-            console.log(resultJSON[0]);
-            return resultJSON[0].cvr;
-        }
-    });
-    //console.log("res", res)
-    //return result;*/
 }
 
-
 function getAllStakeholderInfo(){
-    con.query("SELECT * FROM stakeholders_information ", function (err, result, fields) {
+    con.query("SELECT * FROM stakeholders_information ", function (err, result) {
         if (err) throw err;
         console.log(result);
     });     
@@ -89,7 +79,7 @@ function createCertificateTable(){
 }
 
 function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
-    //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products', ' 2023-05-16 ', ' copenhagen', ' 2023-05-16 ',
+    //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products', ' 2023-05-16 ', ' copenhagen', ' 2023-05-16 '
     var sql = `INSERT INTO certificate (CVR_Number, Date_of_annual_inspection, product_category, Date_of_issuing,Place_of_issuing ,Valid_until) VALUES ('${cvr}', '${date}', '${category}', '${issuedTime}', '${issuedPlace}', '${validity}' )`;
     con.query(sql, function (err, result) {
         if (err) throw err;
@@ -104,10 +94,6 @@ function getCertificate(cvr){
           resolve(result);
         })
       })
-    /*con.query(`SELECT * FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
-        if (err) throw err;
-        console.log(result);
-    });*/
 }
 
 function getAllCertificates(){
@@ -134,7 +120,7 @@ function dropCertificateTable(){
 }
   
 function updateCertificate(cvr){
-    var sql = `UPDATE certificate SET Date_of_annual_inspection='${date}', product_category='${category}', Date_of_issuing='${issuedTime}', Place_of_issuing='${issuedPlace}', Valid_until='${validity}' )`;
+    var sql = `UPDATE certificate SET Date_of_annual_inspection='${date}', product_category='${category}', Date_of_issuing='${issuedTime}', Place_of_issuing='${issuedPlace}', Valid_until='${validity}' WHERE CVR_Number = '${cvr}' )`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
