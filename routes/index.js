@@ -42,69 +42,50 @@ router.post('/message', async function(req, res) {
 
 //get messages by index from the tangle, combine wiht information from virk.dk and database
 //Parameters:
-// req.body.index = index of the messages to be retrieved
+// req.params.index = index of the messages to be retrieved
 router.get('/messages/:index', async function(req, res) {
-    console.log(req.params)
+    //index to look for next
     let continueValues = [];
     let scData = [];
     await getMessages(req.params.index, continueValues, scData);
-    console.log(continueValues, scData);
-    console.log(continueValues.length);
 
     //in this case, maximum of two different indexes will need to be checked, so no loop is needed
     if(continueValues.length !== 0){
-        for (let i=0; i<continueValues.length; i++){
-            console.log(continueValues[i]);
-            await getMessages(continueValues[i], [], scData);
-        }
+        await getMessages(continueValues[0], [], scData);
     }
-    //console.log(continueValues, scData);
 
-    //console.log(scData);
-    //TODO: make sure data is in order from farm to store --> based on what? Automatically in order of recording,
-    // is this assumed to be enough?
+    //make sure messages are in order of oldest recorder message to newest recorded message
     scData = scData.sort((a, b) => {
         if(a.recordTime < b.recordTime){
             return -1;
         }
     })
-    //console.log("After sorting")
-    //console.log(scData);
-
-    //TODO: retrieve the CVR numbers from database? Check if CVR number matches the one in database?
 
     //get additional information from other sources
     for(i=0; i<scData.length; i++){
-        console.log("here");
+        //get CVR number from database
         const CVRnumber = await getStakeholderCVR(scData[i].did);
         if(CVRnumber[0] && CVRnumber[0].cvr){
-            console.log("CVR:", CVRnumber[0].cvr)
-            console.log("Here");
+            //get company inofmration from Virk based on CVR number
             const url = "https://cvrapi.dk/api?search=" + CVRnumber[0].cvr + "&country=dk";
-            console.log(url);
 
             const CVRinfo = await axios.get(url).then( response => {
-                //console.log(response.data)
                 return {"name": response.data.name, "address": response.data.address, "city": response.data.city}
             })
-            //console.log("scData: " + JSON.stringify(CVRinfo));
+
+            //add new information to list of data
             scData[i].name = CVRinfo.name;
             scData[i].address = CVRinfo.address;
             scData[i].city = CVRinfo.city;
-            //console.log("scData: " + JSON.stringify(scData[i]));
 
+            //get certificates for the company
             const certificate = await getCertificate(CVRnumber[0].cvr);
-            //console.log(certificate);
             if(certificate.length !== 0){
-                //console.log(certificate[0]);
                 scData[i].cert = {"Date_of_annual_inspection": certificate[0].inspection, "product_category": certificate[0].category, "Date_of_issuing": certificate[0].date, "Place_of_issuing": certificate[0].place, "Valid_until": certificate[0].validity}
             }
         }
     }
 
-    //TODO: retrieve rest of information from database
-    //console.log("Final data:");
-    //console.log(scData);
     //send data back to the client
     res.send(scData);
 });
@@ -114,7 +95,6 @@ async function getMessages(index, continueValues, scData){
     // client will connect to testnet by default
     const client = new ClientBuilder().localPow(true).build();
     // get messages by index
-    console.log("index: ", index);
     const message_ids = await client.getMessage().index(index);
 
     for (message_id of message_ids) {
@@ -138,7 +118,6 @@ async function getMessages(index, continueValues, scData){
         const doc = await resolver.resolve(did);
         //check validity of message with the signed data and the information from the DID document
         const validSignature = doc.document().verifyData(signedDataJSON, VerifierOptions.default());
-        console.log(validSignature);
 
         //only take the message into account if the signature was valid
         if(validSignature){
