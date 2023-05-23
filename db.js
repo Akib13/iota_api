@@ -13,27 +13,39 @@ con.connect(function(err){
 });
 
 function createStakeholderInfoTable(){
-    var sql = "CREATE TABLE IF NOT EXISTS stakeholders_information (CVR_Number VARCHAR(255), Date_of_annual_inspection VARCHAR(255), product_category VARCHAR(255) )";
+    var sql = "CREATE TABLE IF NOT EXISTS stakeholders_information (CVR_Number VARCHAR(255), DID VARCHAR(255) )";
     con.query(sql, function (err, result) {
         if (err) throw err;
-        console.log(result);
+        console.log("stakeholder_information table exists or created");
     }); 
 }
 
-function addStakeholderInfo(date, category, cvr){
+function addStakeholderInfo(cvr, did){
     //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products'
-    var sql = `INSERT INTO stakeholders_information (CVR_number, Date_of_annual_inspection, product_category) VALUES ('${cvr}', '${date}', '${category}')`;
+    var sql = `INSERT INTO stakeholders_information (CVR_number, DID) VALUES ('${cvr}', '${did}')`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("recorded_ID: " + result.insertId);
     });
 }
 
-function getStakeholderInfo(cvr){
-    con.query(`SELECT * FROM stakeholders_information WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
+async function getStakeholderCVR(did){
+    return new Promise((resolve, reject) => {
+        con.query(`SELECT CVR_Number as cvr FROM stakeholders_information WHERE DID = '${did}'`, function (err, result, fields) {
+          if (err) reject(err); 
+          resolve(result);
+        })
+      })
+    /*con.query(`SELECT CVR_Number as cvr FROM stakeholders_information WHERE DID = '${did}'`, function (err, result, fields) {
         if (err) throw err;
-        console.log(result);
-    });      
+        const resultJSON = JSON.parse(JSON.stringify(result));
+        if(resultJSON[0] && resultJSON[0].cvr){
+            console.log(resultJSON[0]);
+            return resultJSON[0].cvr;
+        }
+    });
+    //console.log("res", res)
+    //return result;*/
 }
 
 
@@ -44,8 +56,8 @@ function getAllStakeholderInfo(){
     });     
 }
 
-function deleteStakeholderInfo(cvr){
-    var sql = `DELETE FROM stakeholders_information WHERE cvr_number = '${cvr}'`;
+function deleteStakeholderInfo(did){
+    var sql = `DELETE FROM stakeholders_information WHERE DID = '${did}'`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("Number of records deleted: " + result.affectedRows);
@@ -60,8 +72,8 @@ function dropStakeholderInfoTable(){
     });
 }
 
-function updateStakeholderInfo(column, value, cvr){
-    var sql = `UPDATE stakeholders_information SET ${column} = '${value}' WHERE CVR_number = '${cvr}'`;
+function updateStakeholderInfo(column, value, check, checkvalue){
+    var sql = `UPDATE stakeholders_information SET ${column} = '${value}' WHERE ${check} = '${checkvalue}'`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
@@ -69,10 +81,10 @@ function updateStakeholderInfo(column, value, cvr){
 }
 
 function createCertificateTable(){
-    var sql = "CREATE TABLE certificate (CVR_Number VARCHAR(255), Date_of_annual_inspection VARCHAR(255), product_category VARCHAR(255), Date_of_issuing VARCHAR(255), Place_of_issuing VARCHAR(255), Valid_until VARCHAR(255)";
+    var sql = "CREATE TABLE IF NOT EXISTS certificate (CVR_Number VARCHAR(255), Date_of_annual_inspection VARCHAR(255), product_category VARCHAR(255), Date_of_issuing VARCHAR(255), Place_of_issuing VARCHAR(255), Valid_until VARCHAR(255))";
     con.query(sql, function (err, result) {
         if (err) throw err;
-        console.log("Table created");
+        console.log("certificate table exists or created");
     });   
 }
 
@@ -86,10 +98,16 @@ function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
 }
 
 function getCertificate(cvr){
-    con.query(`SELECT * FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
+    return new Promise((resolve, reject) => {
+        con.query(`SELECT * FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
+          if (err) reject(err); 
+          resolve(result);
+        })
+      })
+    /*con.query(`SELECT * FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
         if (err) throw err;
         console.log(result);
-    });
+    });*/
 }
 
 function getAllCertificates(){
@@ -123,4 +141,4 @@ function updateCertificate(cvr){
     });
 }
     
-module.exports = {createCertificateTable, createStakeholderInfoTable, addCertificate, addStakeholderInfo, getAllCertificates, getCertificate, getAllStakeholderInfo, getStakeholderInfo, deleteStakeholderInfo, deleteCertificate, dropCertificateTable, dropStakeholderInfoTable, updateCertificate, updateStakeholderInfo}
+module.exports = {createCertificateTable, createStakeholderInfoTable, addCertificate, addStakeholderInfo, getAllCertificates, getCertificate, getAllStakeholderInfo, getStakeholderCVR, deleteStakeholderInfo, deleteCertificate, dropCertificateTable, dropStakeholderInfoTable, updateCertificate, updateStakeholderInfo}

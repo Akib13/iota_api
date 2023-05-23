@@ -5,13 +5,23 @@ require('dotenv').config({ path: '../.env' }); //store database username and pas
 const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
-const {createStakeholderInfoTable} = require('../db');
+const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo} = require('../db');
 
-router.get('/time', function(req, res){
-    createStakeholderInfoTable();
+
+router.get('/deleteStakeholder', function(req, res) {
+    dropStakeholderInfoTable();
     res.sendStatus(200);
 });
 
+router.post('/addStakeholder', function(req, res){
+    addStakeholderInfo(req.body.cvr, req.body.did);
+    res.sendStatus(200);
+})
+
+router.post('/updateStakeholder', function(req, res){
+    updateStakeholderInfo("CVR_Number", req.body.cvr, "DID", req.body.did);
+    res.sendStatus(200);
+})
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
 //a new DID will be created for each message and stored in the database
@@ -39,7 +49,7 @@ router.post('/message', async function(req, res) {
     //index can later be used to retrieve all messages with the same index
     const messageId = await client.postMessage({payload: { index: req.body.index, data: buf}});
     if(messageId.length !== 0){
-        res.send(axios.HttpStatusCode.Ok);
+        res.sendStatus(200);
     }else{
         res.send("Error");
     }
@@ -54,10 +64,12 @@ router.get('/messages/:index', async function(req, res) {
     let scData = [];
     await getMessages(req.params.index, continueValues, scData);
     console.log(continueValues, scData);
+    console.log(continueValues.length);
 
     //in this case, maximum of two different indexes will need to be checked, so no loop is needed
     if(continueValues.length !== 0){
         for (let i=0; i<continueValues.length; i++){
+            console.log(continueValues[i]);
             await getMessages(continueValues[i], [], scData);
         }
     }
@@ -78,13 +90,16 @@ router.get('/messages/:index', async function(req, res) {
 
     //get additional information from other sources
     for(i=0; i<scData.length; i++){
-        const CVRnumber = scData[i].CVR;
-        if(CVRnumber){
+        console.log("here");
+        const CVRnumber = await getStakeholderCVR(scData[i].did);
+        if(CVRnumber[0] && CVRnumber[0].cvr){
+            console.log("CVR:", CVRnumber[0].cvr)
             console.log("Here");
-            const url = "https://cvrapi.dk/api?search=" + CVRnumber + "&country=dk";
+            const url = "https://cvrapi.dk/api?search=" + CVRnumber[0].cvr + "&country=dk";
             console.log(url);
 
             const CVRinfo = await axios.get(url).then( response => {
+                console.log(response.data)
                 return {"name": response.data.name, "address": response.data.address, "city": response.data.city}
             })
             //console.log("scData: " + CVRinfo);
@@ -96,7 +111,8 @@ router.get('/messages/:index', async function(req, res) {
     }
 
     //TODO: retrieve rest of information from database
-    
+    console.log("Final data:");
+    console.log(scData);
     //send data back to the client
     res.send(scData);
 });
@@ -106,6 +122,7 @@ async function getMessages(index, continueValues, scData){
     // client will connect to testnet by default
     const client = new ClientBuilder().localPow(true).build();
     // get messages by index
+    console.log("index: ", index);
     const message_ids = await client.getMessage().index(index);
 
     for (message_id of message_ids) {
@@ -134,12 +151,10 @@ async function getMessages(index, continueValues, scData){
         //only take the message into account if the signature was valid
         if(validSignature){
             //if the signature was valid, check message content for an index to look for next
-            console.log(signedDataJSON);
-            //let data = JSON.parse(signedDataJSON.data);
-            if(signedDataJSON.data.continue){
+            if(signedDataJSON.data.pigid){
                 //retrieve next messages using this value as index
-                continueValues.push(signedDataJSON.data["continue"]);
-                delete signedDataJSON.data["continue"];
+                continueValues.push(signedDataJSON.data["pigid"]);
+                delete signedDataJSON.data["pigid"];
             }
             //add DID string to data for fetching additional information from database
             signedDataJSON.data.did = didString;
