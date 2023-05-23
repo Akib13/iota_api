@@ -5,9 +5,11 @@ require('dotenv').config({ path: '../.env' }); //store database username and pas
 const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
+const {createStakeholderInfoTable} = require('../db');
 
 router.get('/time', function(req, res){
-    res.send(new Date());
+    createStakeholderInfoTable();
+    res.sendStatus(200);
 });
 
 //record new message
@@ -46,10 +48,11 @@ router.post('/message', async function(req, res) {
 //get messages by index from the tangle, combine wiht information from virk.dk and database
 //Parameters:
 // req.body.index = index of the messages to be retrieved
-router.get('/message', async function(req, res) {
+router.get('/messages/:index', async function(req, res) {
+    console.log(req.params)
     let continueValues = [];
     let scData = [];
-    await getMessages(req.body.index, continueValues, scData);
+    await getMessages(req.params.index, continueValues, scData);
     console.log(continueValues, scData);
 
     //in this case, maximum of two different indexes will need to be checked, so no loop is needed
