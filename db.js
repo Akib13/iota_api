@@ -90,7 +90,7 @@ function createCertificateTable(){
 
 function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
     //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products', ' 2023-05-16 ', ' copenhagen', ' 2023-05-16 ',
-    var sql = `INSERT INTO certificate (Date_of_annual_inspection, product_category, cvr_number, Date_of_issuing,Place_of_issuing ,Valid_until,) VALUES ('${cvr}', '${date}', '${category}', '${issuedTime}', '${issuedPlace}', '${validity}' )`;
+    var sql = `INSERT INTO certificate (CVR_Number, Date_of_annual_inspection, product_category, Date_of_issuing,Place_of_issuing ,Valid_until) VALUES ('${cvr}', '${date}', '${category}', '${issuedTime}', '${issuedPlace}', '${validity}' )`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("recorded_ID: " + result.insertId);
@@ -99,7 +99,7 @@ function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
 
 function getCertificate(cvr){
     return new Promise((resolve, reject) => {
-        con.query(`SELECT * FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
+        con.query(`SELECT Date_of_annual_inspection as inspection, product_category as category, Date_of_issuing as date, Place_of_issuing as place, Valid_until as validity FROM certificate as cert WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
           if (err) reject(err); 
           resolve(result);
         })

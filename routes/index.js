@@ -5,23 +5,8 @@ require('dotenv').config({ path: '../.env' }); //store database username and pas
 const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
-const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo} = require('../db');
+const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates} = require('../db');
 
-
-router.get('/deleteStakeholder', function(req, res) {
-    dropStakeholderInfoTable();
-    res.sendStatus(200);
-});
-
-router.post('/addStakeholder', function(req, res){
-    addStakeholderInfo(req.body.cvr, req.body.did);
-    res.sendStatus(200);
-})
-
-router.post('/updateStakeholder', function(req, res){
-    updateStakeholderInfo("CVR_Number", req.body.cvr, "DID", req.body.did);
-    res.sendStatus(200);
-})
 //record new message
 //since we do not implement applications for the people recording transactions but need the private keys for signatures, 
 //a new DID will be created for each message and stored in the database
@@ -99,20 +84,27 @@ router.get('/messages/:index', async function(req, res) {
             console.log(url);
 
             const CVRinfo = await axios.get(url).then( response => {
-                console.log(response.data)
+                //console.log(response.data)
                 return {"name": response.data.name, "address": response.data.address, "city": response.data.city}
             })
-            //console.log("scData: " + CVRinfo);
+            //console.log("scData: " + JSON.stringify(CVRinfo));
             scData[i].name = CVRinfo.name;
             scData[i].address = CVRinfo.address;
             scData[i].city = CVRinfo.city;
             //console.log("scData: " + JSON.stringify(scData[i]));
+
+            const certificate = await getCertificate(CVRnumber[0].cvr);
+            //console.log(certificate);
+            if(certificate.length !== 0){
+                //console.log(certificate[0]);
+                scData[i].cert = {"Date_of_annual_inspection": certificate[0].inspection, "product_category": certificate[0].category, "Date_of_issuing": certificate[0].date, "Place_of_issuing": certificate[0].place, "Valid_until": certificate[0].validity}
+            }
         }
     }
 
     //TODO: retrieve rest of information from database
-    console.log("Final data:");
-    console.log(scData);
+    //console.log("Final data:");
+    //console.log(scData);
     //send data back to the client
     res.send(scData);
 });
@@ -190,5 +182,31 @@ router.post('/did', async function(req, res, next) {
     console.log(`Explorer URL:`, ExplorerUrl.mainnet().resolverUrl(did));
     res.send("ok");
 });
+
+//helper routes used for development purposes
+router.get('/deleteStakeholder', function(req, res) {
+    dropStakeholderInfoTable();
+    res.sendStatus(200);
+});
+
+router.post('/addStakeholder', function(req, res){
+    addStakeholderInfo(req.body.cvr, req.body.did);
+    res.sendStatus(200);
+})
+
+router.post('/updateStakeholder', function(req, res){
+    updateStakeholderInfo("CVR_Number", req.body.cvr, "DID", req.body.did);
+    res.sendStatus(200);
+})
+
+router.post('/addCertificate', function(req, res) {
+    addCertificate(req.body.cvr, req.body.date, req.body.category, req.body.issuedTime, req.body.issuedPlace, req.body.validity);
+    res.sendStatus(200);
+})
+
+router.get('/certificates', function(req, res){
+    getAllCertificates();
+    res.sendStatus(200);
+})
 
 module.exports = router;
