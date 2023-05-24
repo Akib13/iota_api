@@ -5,7 +5,7 @@ require('dotenv').config({ path: '../.env' }); //store database username and pas
 const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
-const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates} = require('../db');
+const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates, dropCertificateTable} = require('../db');
 
 //record new message
 //since we do not implement applications for the people recording transactions but we do need the private keys for signatures, 
@@ -163,8 +163,13 @@ router.post('/did', async function(req, res, next) {
 });
 
 //helper routes used for development purposes
-router.get('/deleteStakeholder', function(req, res) {
+router.get('/deleteStakeholderTable', function(req, res) {
     dropStakeholderInfoTable();
+    res.sendStatus(200);
+});
+
+router.get('/deleteCertificateTable', function(req, res) {
+    dropCertificateTable();
     res.sendStatus(200);
 });
 
@@ -179,7 +184,7 @@ router.post('/updateStakeholder', function(req, res){
 })
 
 router.post('/addCertificate', function(req, res) {
-    addCertificate(req.body.cvr, req.body.date, req.body.category, req.body.issuedTime, req.body.issuedPlace, req.body.validity);
+    addCertificate(req.body.cvr, req.body.date, req.body.category, req.body.issuedTime, req.body.issuedPlace, req.body.validity, req.body.issuer);
     res.sendStatus(200);
 })
 

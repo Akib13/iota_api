@@ -71,16 +71,16 @@ function updateStakeholderInfo(column, value, check, checkvalue){
 }
 
 function createCertificateTable(){
-    var sql = "CREATE TABLE IF NOT EXISTS certificate (CVR_Number VARCHAR(255), Date_of_annual_inspection VARCHAR(255), product_category VARCHAR(255), Date_of_issuing VARCHAR(255), Place_of_issuing VARCHAR(255), Valid_until VARCHAR(255))";
+    var sql = "CREATE TABLE IF NOT EXISTS certificate (ID int NOT NULL AUTO_INCREMENT PRIMARY KEY, CVR_Number VARCHAR(255), Date_of_annual_inspection VARCHAR(255), product_category VARCHAR(255), Date_of_issuing VARCHAR(255), Place_of_issuing VARCHAR(255), Valid_until VARCHAR(255), Issuer VARCHAR(255))";
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("certificate table exists or created");
     });   
 }
 
-function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
+function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity, issuer){
     //example values ' 2023-05-16 ', '34230021', 'unprocessed plant products', ' 2023-05-16 ', ' copenhagen', ' 2023-05-16 '
-    var sql = `INSERT INTO certificate (CVR_Number, Date_of_annual_inspection, product_category, Date_of_issuing,Place_of_issuing ,Valid_until) VALUES ('${cvr}', '${date}', '${category}', '${issuedTime}', '${issuedPlace}', '${validity}' )`;
+    var sql = `INSERT INTO certificate (CVR_Number, Date_of_annual_inspection, product_category, Date_of_issuing,Place_of_issuing ,Valid_until, Issuer) VALUES ('${cvr}', '${date}', '${category}', '${issuedTime}', '${issuedPlace}', '${validity}', '${issuer}' )`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log("recorded_ID: " + result.insertId);
@@ -89,7 +89,7 @@ function addCertificate(cvr, date, category, issuedTime, issuedPlace, validity){
 
 function getCertificate(cvr){
     return new Promise((resolve, reject) => {
-        con.query(`SELECT Date_of_annual_inspection as inspection, product_category as category, Date_of_issuing as date, Place_of_issuing as place, Valid_until as validity FROM certificate as cert WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
+        con.query(`SELECT Date_of_annual_inspection as inspection, product_category as category, Date_of_issuing as date, Place_of_issuing as place, Valid_until as validity, Issuer as issuer FROM certificate WHERE CVR_number = '${cvr}'`, function (err, result, fields) {
           if (err) reject(err); 
           resolve(result);
         })
@@ -119,8 +119,8 @@ function dropCertificateTable(){
     });
 }
   
-function updateCertificate(cvr){
-    var sql = `UPDATE certificate SET Date_of_annual_inspection='${date}', product_category='${category}', Date_of_issuing='${issuedTime}', Place_of_issuing='${issuedPlace}', Valid_until='${validity}' WHERE CVR_Number = '${cvr}' )`;
+function updateCertificate(cvr, date, category, issuedTime, issuedPlace, validity, issuer){
+    var sql = `UPDATE certificate SET Date_of_annual_inspection='${date}', product_category='${category}', Date_of_issuing='${issuedTime}', Place_of_issuing='${issuedPlace}', Valid_until='${validity}', Issuer='${issuer}' WHERE CVR_Number = '${cvr}' )`;
     con.query(sql, function (err, result) {
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
