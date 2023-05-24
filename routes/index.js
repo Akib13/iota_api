@@ -47,8 +47,15 @@ router.get('/messages/:index', async function(req, res) {
     //index to look for next
     let continueValues = [];
     let scData = [];
-    await getMessages(req.params.index, continueValues, scData);
+    let success = false;
+    //TODO: return error if not found
+    success = await getMessages(req.params.index, continueValues, scData);
 
+    if(!success){
+        const error = {"Error": "Product not found"};
+        res.send(JSON.stringify(error));
+        return;
+    }
     //in this case, maximum of two different indexes will need to be checked, so no loop is needed
     if(continueValues.length !== 0){
         await getMessages(continueValues[0], [], scData);
@@ -97,10 +104,11 @@ async function getMessages(index, continueValues, scData){
     // get messages by index
     const message_ids = await client.getMessage().index(index);
 
+    if(message_ids.length === 0){
+        return false;
+    }
     for (message_id of message_ids) {
         const desiredMessage = await client.getMessage().data(message_id)
-        //console.log(Buffer.from(desiredMessage.message.payload.data, 'hex').toString('utf8'))
-        //console.log(desiredMessage);
 
         //get signed data in JSON format for later use
         const signedDataJSON = JSON.parse(Buffer.from(desiredMessage.message.payload.data, 'hex')).signedData;
@@ -132,6 +140,7 @@ async function getMessages(index, continueValues, scData){
             scData.push(signedDataJSON.data);
         }
     }
+    return true;
 }
 
 //create a new DID document (will not be used for our solution)
