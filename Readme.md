@@ -14,4 +14,4 @@ For example, running `GET http://localhost:3000/api/data` will return informatio
 
 Problem solving
 ----------------
-Running the server in a virtual machine, Expo Go application in a physical device: try using _localtunnel_ to access the port from the internet. This can be set up using the following command: `lt --port 3000 --subdomain qr-code-server-2 --local-host 192.168.109.131`
+Running the server in a virtual machine, Expo Go application in a physical device: try using _localtunnel_ to access the port from the internet. This can be set up using the following command: `lt --port {port}--subdomain {domain name}--local-host {port}`

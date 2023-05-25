@@ -48,11 +48,11 @@ router.get('/messages/:index', async function(req, res) {
     let continueValues = [];
     let scData = [];
     let success = false;
-    //TODO: return error if not found
+    
     success = await getMessages(req.params.index, continueValues, scData);
 
     if(!success){
-        const error = {"Error": "Product not found"};
+        const error = {error: "Product not found", fetched: true};
         res.send(JSON.stringify(error));
         return;
     }
@@ -84,16 +84,19 @@ router.get('/messages/:index', async function(req, res) {
             scData[i].name = CVRinfo.name;
             scData[i].address = CVRinfo.address;
             scData[i].city = CVRinfo.city;
-
+        
             //get certificates for the company
             const certificate = await getCertificate(CVRnumber[0].cvr);
             if(certificate.length !== 0){
                 scData[i].cert = {"Date_of_annual_inspection": certificate[0].inspection, "product_category": certificate[0].category, "Date_of_issuing": certificate[0].date, "Place_of_issuing": certificate[0].place, "Valid_until": certificate[0].validity}
             }
+        } else {
+            scData.splice(i, 1);
         }
     }
 
     //send data back to the client
+    console.log(scData);
     res.send(scData);
 });
 
