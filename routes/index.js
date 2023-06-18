@@ -5,7 +5,7 @@ require('dotenv').config({ path: '../.env' }); //store database username and pas
 const {AccountBuilder, ExplorerUrl, DID, Resolver, ProofOptions, VerifierOptions,} = require('@iota/identity-wasm/node')
 const { Stronghold } = require('@iota/identity-stronghold-nodejs');
 const axios = require('axios');
-const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates, dropCertificateTable} = require('../db');
+const {getStakeholderCVR, dropStakeholderInfoTable, addStakeholderInfo, getAllStakeholderInfo, updateStakeholderInfo, addCertificate, getCertificate, getAllCertificates, dropCertificateTable, deleteStakeholderInfo} = require('../db');
 
 //record new message
 //since we do not implement applications for the people recording transactions but we do need the private keys for signatures, 
@@ -61,6 +61,8 @@ router.get('/messages/:index', async function(req, res) {
         await getMessages(continueValues[0], [], scData);
     }
 
+    console.log("Before sorting:")
+    console.log(scData);
     //make sure messages are in order of oldest recorder message to newest recorded message
     scData = scData.sort((a, b) => {
         if(a.recordTime < b.recordTime){
@@ -68,12 +70,18 @@ router.get('/messages/:index', async function(req, res) {
         }
     })
 
+    console.log("\nAfter sorting:")
+    console.log(scData);
+
     //get additional information from other sources
     for(i=0; i<scData.length; i++){
         //get CVR number from database
+        console.log("checking:");
+        console.log(scData[i]);
         const CVRnumber = await getStakeholderCVR(scData[i].did);
         if(CVRnumber[0] && CVRnumber[0].cvr){
-            //get company inofmration from Virk based on CVR number
+            console.log(CVRnumber[0].cvr);
+            //get company information from Virk based on CVR number
             const url = "https://cvrapi.dk/api?search=" + CVRnumber[0].cvr + "&country=dk";
 
             const CVRinfo = await axios.get(url).then( response => {
@@ -81,9 +89,9 @@ router.get('/messages/:index', async function(req, res) {
             })
 
             //add new information to list of data
-            scData[i].name = CVRinfo.name;
-            scData[i].address = CVRinfo.address;
-            scData[i].city = CVRinfo.city;
+            scData[i].name = CVRinfo.name ? CVRinfo.name : "Unknown";
+            scData[i].address = CVRinfo.address ? CVRinfo.address : "Unknown";
+            scData[i].city = CVRinfo.city ? CVRinfo.city : "Unknown";
         
             //get certificates for the company
             const certificate = await getCertificate(CVRnumber[0].cvr);
@@ -91,11 +99,15 @@ router.get('/messages/:index', async function(req, res) {
                 scData[i].cert = {"Date_of_annual_inspection": certificate[0].inspection, "product_category": certificate[0].category, "Date_of_issuing": certificate[0].date, "Place_of_issuing": certificate[0].place, "Valid_until": certificate[0].validity}
             }
         } else {
+            console.log("removing:");
+            console.log(scData[i]);
             scData.splice(i, 1);
+            i--;
         }
     }
 
     //send data back to the client
+    console.log("## FINAL DATA ##")
     console.log(scData);
     res.send(scData);
 });
@@ -190,6 +202,15 @@ router.post('/addStakeholder', function(req, res){
     res.sendStatus(200);
 })
 
+router.post('/deleteStakeholder', function(req, res){
+    deleteStakeholderInfo(req.body.did);
+    res.sendStatus(200);
+})
+
+router.get('/stakeholders', function(req, res) {
+    getAllStakeholderInfo();
+    res.sendStatus(200);
+});
 router.post('/updateStakeholder', function(req, res){
     updateStakeholderInfo("CVR_Number", req.body.cvr, "DID", req.body.did);
     res.sendStatus(200);
