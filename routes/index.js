@@ -104,6 +104,11 @@ router.get('/messages/:index', async function(req, res) {
     //send data back to the client
     console.log("## FINAL DATA ##")
     console.log(scData);
+    if(scData.length === 0){
+        const error = {error: "Product not found", fetched: true};
+        res.send(JSON.stringify(error));
+        return;
+    }
     res.send(scData);
 });
 
