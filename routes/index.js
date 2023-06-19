@@ -61,17 +61,12 @@ router.get('/messages/:index', async function(req, res) {
         await getMessages(continueValues[0], [], scData);
     }
 
-    console.log("Before sorting:")
-    console.log(scData);
     //make sure messages are in order of oldest recorder message to newest recorded message
     scData = scData.sort((a, b) => {
         if(a.recordTime < b.recordTime){
             return -1;
         }
     })
-
-    console.log("\nAfter sorting:")
-    console.log(scData);
 
     //get additional information from other sources
     for(i=0; i<scData.length; i++){
